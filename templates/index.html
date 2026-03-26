@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>CryptoEdge — Live Signals &amp; Arbitrage</title>
+  <style>
+    :root {
+      --bg: #0d1117; --card: #161b22; --border: #30363d;
+      --green: #3fb950; --red: #f85149; --yellow: #d29922;
+      --text: #c9d1d9; --muted: #8b949e; --accent: #58a6ff;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', system-ui, sans-serif; }
+    header { padding: 1.5rem 2rem; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 1rem; }
+    header h1 { font-size: 1.4rem; }
+    header span { color: var(--muted); font-size: .85rem; }
+    .badge { background: var(--green); color: #000; border-radius: 4px; padding: 2px 8px; font-size: .75rem; font-weight: 700; }
+    main { max-width: 1200px; margin: 0 auto; padding: 2rem; }
+    h2 { font-size: 1.1rem; margin-bottom: 1rem; display: flex; align-items: center; gap: .5rem; }
+    .section { margin-bottom: 3rem; }
+    table { width: 100%; border-collapse: collapse; font-size: .875rem; }
+    th { text-align: left; padding: .6rem .8rem; border-bottom: 2px solid var(--border); color: var(--muted); font-weight: 600; }
+    td { padding: .6rem .8rem; border-bottom: 1px solid var(--border); vertical-align: middle; }
+    tr:hover td { background: var(--card); }
+    .buy  { color: var(--green); font-weight: 700; }
+    .sell { color: var(--red);   font-weight: 700; }
+    .hold { color: var(--yellow); font-weight: 700; }
+    .positive { color: var(--green); }
+    .negative { color: var(--red); }
+    .spread-high { color: var(--green); font-weight: 700; }
+    .spread-med  { color: var(--yellow); font-weight: 600; }
+    a.cta {
+      display: inline-block; background: var(--accent); color: #000;
+      padding: .3rem .8rem; border-radius: 5px; text-decoration: none;
+      font-size: .78rem; font-weight: 700;
+    }
+    a.cta:hover { opacity: .85; }
+    .loading { color: var(--muted); padding: 2rem; text-align: center; }
+    .income-box {
+      background: var(--card); border: 1px solid var(--border); border-radius: 8px;
+      padding: 1.2rem 1.5rem; margin-bottom: 2rem;
+      display: flex; gap: 2rem; flex-wrap: wrap;
+    }
+    .income-box .item { font-size: .85rem; }
+    .income-box .item strong { display: block; font-size: 1.1rem; color: var(--green); }
+    .refresh-btn {
+      background: none; border: 1px solid var(--border); color: var(--text);
+      padding: .3rem .8rem; border-radius: 5px; cursor: pointer; font-size: .82rem;
+    }
+    .refresh-btn:hover { border-color: var(--accent); color: var(--accent); }
+    footer { text-align: center; padding: 2rem; color: var(--muted); font-size: .8rem; border-top: 1px solid var(--border); }
+  </style>
+</head>
+<body>
+<header>
+  <h1>⚡ CryptoEdge</h1>
+  <span>Live signals &amp; arbitrage — powered by CoinGecko free API</span>
+  <div style="margin-left:auto">
+    <span class="badge">FREE TIER</span>
+  </div>
+</header>
+<main>
+
+  <!-- Income model info box -->
+  <div class="income-box">
+    <div class="item"><strong>$10–50</strong>per exchange referral</div>
+    <div class="item"><strong>0%</strong>API cost (CoinGecko free)</div>
+    <div class="item"><strong>∞</strong>Passive once deployed</div>
+    <div class="item"><strong>How to earn:</strong> Replace <code>YOUR_REF_ID</code> in <code>arbitrage.py</code> and <code>signals.py</code> with your exchange affiliate IDs. Every "Trade on X" click that converts = cash.</div>
+  </div>
+
+  <!-- Signals -->
+  <div class="section">
+    <h2>
+      📈 Momentum Signals
+      <button class="refresh-btn" onclick="loadSignals()">↺ Refresh</button>
+    </h2>
+    <table id="signals-table">
+      <thead>
+        <tr>
+          <th>Coin</th><th>Price (USD)</th><th>24h %</th><th>7d %</th>
+          <th>RSI-14</th><th>Signal</th><th>Reason</th><th>Action</th>
+        </tr>
+      </thead>
+      <tbody id="signals-body"><tr><td colspan="8" class="loading">Loading…</td></tr></tbody>
+    </table>
+  </div>
+
+  <!-- Arbitrage -->
+  <div class="section">
+    <h2>
+      🔄 Arbitrage Opportunities
+      <button class="refresh-btn" onclick="loadArbitrage()">↺ Refresh</button>
+    </h2>
+    <p style="color:var(--muted);font-size:.82rem;margin-bottom:.8rem">
+      Buy low on one exchange, sell high on another. Net spread after ~0.2% round-trip fees shown.
+    </p>
+    <table id="arb-table">
+      <thead>
+        <tr>
+          <th>Coin</th><th>Buy on</th><th>Buy Price</th>
+          <th>Sell on</th><th>Sell Price</th><th>Spread %</th>
+          <th>Profit / $100</th><th>Act</th>
+        </tr>
+      </thead>
+      <tbody id="arb-body"><tr><td colspan="8" class="loading">Loading… (takes ~30s on first run)</td></tr></tbody>
+    </table>
+  </div>
+
+</main>
+<footer>Data from CoinGecko public API · Not financial advice · Replace affiliate IDs to monetize</footer>
+
+<script>
+  function fmt(n, decimals=2) {
+    return n == null ? '—' : Number(n).toLocaleString(undefined, {minimumFractionDigits: decimals, maximumFractionDigits: decimals});
+  }
+  function pctClass(v) { return v > 0 ? 'positive' : v < 0 ? 'negative' : ''; }
+  function signalClass(s) { return s.toLowerCase(); }
+
+  async function loadSignals() {
+    document.getElementById('signals-body').innerHTML = '<tr><td colspan="8" class="loading">Loading…</td></tr>';
+    const res = await fetch('/api/signals?limit=12');
+    const data = await res.json();
+    const rows = data.map(r => `
+      <tr>
+        <td><strong>${r.coin}</strong></td>
+        <td>$${fmt(r.price)}</td>
+        <td class="${pctClass(r.change_24h)}">${r.change_24h > 0 ? '+' : ''}${fmt(r.change_24h)}%</td>
+        <td class="${pctClass(r.change_7d)}">${r.change_7d > 0 ? '+' : ''}${fmt(r.change_7d)}%</td>
+        <td>${fmt(r.rsi_14)}</td>
+        <td class="${signalClass(r.signal)}">${r.signal}</td>
+        <td style="font-size:.8rem;color:var(--muted)">${r.reason}</td>
+        <td><a class="cta" href="${r.affiliate_link}" target="_blank" rel="noopener">Trade ↗</a></td>
+      </tr>
+    `).join('');
+    document.getElementById('signals-body').innerHTML = rows || '<tr><td colspan="8" class="loading">No data</td></tr>';
+  }
+
+  async function loadArbitrage() {
+    document.getElementById('arb-body').innerHTML = '<tr><td colspan="8" class="loading">Scanning exchanges… (~30s)</td></tr>';
+    const res = await fetch('/api/arbitrage?coins=8&min_spread=0.5');
+    const data = await res.json();
+    if (!data.length) {
+      document.getElementById('arb-body').innerHTML = '<tr><td colspan="8" class="loading">No opportunities above 0.5% threshold right now</td></tr>';
+      return;
+    }
+    const rows = data.map(r => {
+      const sc = r.spread_pct >= 2 ? 'spread-high' : 'spread-med';
+      return `
+        <tr>
+          <td><strong>${r.coin}</strong></td>
+          <td>${r.buy_exchange}</td>
+          <td>$${fmt(r.buy_price)}</td>
+          <td>${r.sell_exchange}</td>
+          <td>$${fmt(r.sell_price)}</td>
+          <td class="${sc}">${fmt(r.spread_pct)}%</td>
+          <td class="positive">$${fmt(r.estimated_profit_100)}</td>
+          <td>
+            <a class="cta" href="${r.buy_link}" target="_blank" rel="noopener" style="background:#3fb950">Buy ↗</a>
+            <a class="cta" href="${r.sell_link}" target="_blank" rel="noopener" style="background:#f85149;margin-left:4px">Sell ↗</a>
+          </td>
+        </tr>
+      `;
+    }).join('');
+    document.getElementById('arb-body').innerHTML = rows;
+  }
+
+  loadSignals();
+  loadArbitrage();
+</script>
+</body>
+</html>
