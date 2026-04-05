@@ -1,0 +1,8 @@
+{
+    "claudeCode.useTerminal": true,
+    "chat.tools.terminal.terminalProfile.osx": {
+
+    },
+    "editor.formatOnSave": false,
+    "files.autoSave": "afterDelay"
+}
